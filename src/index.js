@@ -32,18 +32,24 @@ const digUp = (imageFileOrBuffer, password) => {
           _clone,
         });
         const payloadText = buffer.toString('utf8');
-        const modifiedPayloadText = password ? decrypt(payloadText, password) : payloadText
-        const payload = JSON.parse(modifiedPayloadText);
+        const modifiedPayloadText = password ? decrypt(payloadText, password) : payloadText;
+        try {
+          const payload = JSON.parse(modifiedPayloadText);
         
-        const textBuffer = Buffer.from(payload.text, 'utf8');
-        const textBufferShasum = crypto.createHash("sha1");
-        textBufferShasum.update(textBuffer);
+          const textBuffer = Buffer.from(payload.text, 'utf8');
+          const textBufferShasum = crypto.createHash("sha1");
+          textBufferShasum.update(textBuffer);
 
-        if (textBufferShasum.digest().equals(Buffer.from(payload.hash))) {
-            resolve(payload.text);
+          if (textBufferShasum.digest().equals(Buffer.from(payload.hash))) {
+              resolve(payload.text);
+          }
+          else {
+              reject(new Error('could not verify Shasum'));
+          }
         }
-        else {
-            reject(new Error('could not verify Shasum'));
+        catch (err) {
+          console.log({ modifiedPayloadText });
+          reject(new Error('Could not decrypt message'));
         }
       } else {
         reject(err);

@@ -1,6 +1,6 @@
 {
   "name": "@mykeels/steganography",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A tool for embedding and extracting text data to/from images",
   "main": "src/index.js",
   "scripts": {
