@@ -1,14 +1,17 @@
 {
   "name": "@mykeels/steganography",
   "version": "1.0.0",
-  "description": "",
+  "description": "A tool for embedding and extracting text data to/from images",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "steganography",
+    "images"
+  ],
+  "author": "mykeels",
+  "license": "MIT",
   "dependencies": {
     "crypto": "^1.0.1",
     "jimp": "^0.10.3"
