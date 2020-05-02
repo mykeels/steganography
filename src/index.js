@@ -1,5 +1,4 @@
 const jimp = require("jimp");
-const fs = require("fs");
 const crypto = require('crypto');
 const digUpNextSection = require("./dig-up-section");
 const embedSection = require("./embed-section");
@@ -11,10 +10,16 @@ let _height = 0;
 let _clone;
 let _batch;
 
-module.exports.digUp = (imageFile, password) => {
+/**
+ * extracts the embedded data from an image
+ * @param {String} imageFileOrBuffer 
+ * @param {String} password 
+ * @returns {Promise<String>} the extracted text data
+ */
+const digUp = (imageFileOrBuffer, password) => {
   return new Promise((resolve, reject) => {
 
-    jimp.read(imageFile, function (err, image) {
+    jimp.read(imageFileOrBuffer, function (err, image) {
       if (!err) {
         _width = image.getWidth();
         _height = image.getHeight();
@@ -47,7 +52,14 @@ module.exports.digUp = (imageFile, password) => {
   });
 };
 
-module.exports.embed = (imageFile, text, outputFile, password) => {
+/**
+ * embeds text data in an image.
+ * @param {String|Buffer} imageFileOrBuffer 
+ * @param {String} text the data to be embedded
+ * @param {String} password encrypts the text data with this key
+ * @returns {Promise<Buffer>}
+ */
+const embed = (imageFileOrBuffer, text, password) => {
   return new Promise((resolve, reject) => {
 
     const textBuffer = Buffer.from(text, 'utf8');
@@ -64,7 +76,7 @@ module.exports.embed = (imageFile, text, outputFile, password) => {
 
     const modifiedPayload = password ? encrypt(payload, password) : payload;
 
-    jimp.read(imageFile, function (err, image) {
+    jimp.read(imageFileOrBuffer, function (err, image) {
       if (!err) {
         image.clone(function (err, clone) {
           if (!err) {
@@ -75,13 +87,9 @@ module.exports.embed = (imageFile, text, outputFile, password) => {
 
             embedSection(Buffer.from(modifiedPayload, 'utf8'), { _index, _width, _batch, _clone });
 
-            outputFile = outputFile ? outputFile : "output";
-
-            clone.write(outputFile + ".png", function (err) {
-              if (err) {
-                reject(err);
-              }
-              resolve();
+            clone.getBuffer('image/png', function (err, buffer) {
+              if (err) reject(err);
+              else resolve(buffer);
             });
           } else {
             reject(err);
@@ -93,3 +101,6 @@ module.exports.embed = (imageFile, text, outputFile, password) => {
     });
   });
 };
+
+module.exports.digUp = digUp;
+module.exports.embed = embed;
