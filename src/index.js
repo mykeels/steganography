@@ -3,22 +3,21 @@ const fs = require("fs");
 const crypto = require('crypto');
 const digUpNextSection = require("./dig-up-section");
 const embedSection = require("./embed-section");
+const { encrypt, decrypt } = require('./encrypt-decrypt');
 
 let _index = 0;
 let _width = 0;
 let _height = 0;
 let _clone;
 let _batch;
-let _password;
 
-module.exports.digUp = (imageFile, outputFolder, password) => {
+module.exports.digUp = (imageFile, password) => {
   return new Promise((resolve, reject) => {
-    _password = password ? password : null;
 
     jimp.read(imageFile, function (err, image) {
       if (!err) {
-        _width = image.width();
-        _height = image.height();
+        _width = image.getWidth();
+        _height = image.getHeight();
         _clone = image;
 
         const buffer = digUpNextSection({
@@ -26,23 +25,20 @@ module.exports.digUp = (imageFile, outputFolder, password) => {
           _width,
           _height,
           _clone,
-          _password,
         });
-        const embededShasum = digUpNextSection({
-          _index,
-          _width,
-          _height,
-          _clone,
-          _password,
-        });
-        const bufferShasum = crypto.createHash("sha1");
-        bufferShasum.update(buffer);
-        const output = outputFolder ? outputFolder : ".";
+        const payloadText = buffer.toString('utf8');
+        const modifiedPayloadText = password ? decrypt(payloadText, password) : payloadText
+        const payload = JSON.parse(modifiedPayloadText);
+        
+        const textBuffer = Buffer.from(payload.text, 'utf8');
+        const textBufferShasum = crypto.createHash("sha1");
+        textBufferShasum.update(textBuffer);
 
-        if (embededShasum.equals(bufferShasum.digest())) {
-            resolve(buffer.toString());
-        } else {
-          reject(new Error('could not verify Shasum'));
+        if (textBufferShasum.digest().equals(Buffer.from(payload.hash))) {
+            resolve(payload.text);
+        }
+        else {
+            reject(new Error('could not verify Shasum'));
         }
       } else {
         reject(err);
@@ -53,12 +49,20 @@ module.exports.digUp = (imageFile, outputFolder, password) => {
 
 module.exports.embed = (imageFile, text, outputFile, password) => {
   return new Promise((resolve, reject) => {
-    _password = password ? password : null;
 
-    const data = Buffer.from(text, 'utf8');
+    const textBuffer = Buffer.from(text, 'utf8');
 
     var shasum = crypto.createHash("sha1");
-    shasum.update(data);
+    shasum.update(textBuffer);
+
+    const payload = JSON.stringify({
+        text,
+        hash: shasum.digest()
+    }, null, 2);
+
+    console.log(payload);
+
+    const modifiedPayload = password ? encrypt(payload, password) : payload;
 
     jimp.read(imageFile, function (err, image) {
       if (!err) {
@@ -69,8 +73,7 @@ module.exports.embed = (imageFile, text, outputFile, password) => {
             _height = clone.getHeight();
             _batch = clone;
 
-            embedSection(data, { _index, _width, _batch, _clone, _password });
-            embedSection(shasum.digest(), { _index, _width, _batch, _clone, _password });
+            embedSection(Buffer.from(modifiedPayload, 'utf8'), { _index, _width, _batch, _clone });
 
             outputFile = outputFile ? outputFile : "output";
 
