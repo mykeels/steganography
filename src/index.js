@@ -32,8 +32,8 @@ const digUp = (imageFileOrBuffer, password) => {
           _clone,
         });
         const payloadText = buffer.toString('utf8');
-        const modifiedPayloadText = password ? decrypt(payloadText, password) : payloadText;
         try {
+          const modifiedPayloadText = password ? decrypt(payloadText, password) : payloadText;
           const payload = JSON.parse(modifiedPayloadText);
         
           const textBuffer = Buffer.from(payload.text, 'utf8');
@@ -48,7 +48,7 @@ const digUp = (imageFileOrBuffer, password) => {
           }
         }
         catch (err) {
-          console.log({ modifiedPayloadText });
+          //console.log({ modifiedPayloadText });
           reject(new Error('Could not decrypt message'));
         }
       } else {
